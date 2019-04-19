@@ -6,6 +6,12 @@ export default class Biome {
   direction: vec3 = vec3.create(); // Ensure that orientation is normalized;
   quaternion: quat = quat.create();
 
+  // storing adjacent polygons
+  neighbor_polygons: Biomes[] = [];
+  border_edges : vec4[] = []; // (x1, y1, x2, y2)
+  corners : vec2[] = []; // the vertices
+
+
   constructor(pos: vec3, orient: vec3, q: quat) {
     this.position = pos;
     this.direction = orient;
