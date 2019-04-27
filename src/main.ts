@@ -4,6 +4,7 @@ import * as DAT from 'dat-gui';
 import Square from './geometry/Square';
 import Plane from './geometry/Plane';
 import Cube from './geometry/Cube';
+import Hexagon from './geometry/Hexagon';
 import biomeGrid from './biomeSys/biomeGrid'
 import OpenGLRenderer from './rendering/gl/OpenGLRenderer';
 import Camera from './Camera';
@@ -16,6 +17,7 @@ import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
 let square: Square;
 let plane : Plane;
 let cube : Cube;
+let hex : Hexagon;
 let planePos: vec2;
 
 const controls = {
@@ -25,6 +27,8 @@ const controls = {
 function loadScene() {
   square = new Square(vec3.fromValues(0, 0, 0));
   square.create();
+  hex = new Hexagon(vec3.fromValues(0, 0, 0));
+  hex.create();
   plane = new Plane(vec3.fromValues(0,0,0), vec2.fromValues(100,100), 20);
   plane.create();
   cube = new Cube(vec3.fromValues(0, 0, 0));
@@ -35,6 +39,7 @@ function loadScene() {
   var bGrid = new biomeGrid();
   bGrid.draw();
   let transformations: mat4[] = bGrid.transformHistory;
+  let colors: vec3[] = bGrid.colorHistory;
   let offsetsArray_1 = [];
   let colorsArray_1 = [];
   let col1Array_1 = [];
@@ -74,10 +79,10 @@ function loadScene() {
     col4Array_1.push(currTransform_1[15]);
 
     // push colors back
-    let rand : number = Math.random();
-    colorsArray_1.push(138. / 255. * rand);
-    colorsArray_1.push(43. / 255.* rand);
-    colorsArray_1.push(226. / 255.* rand);
+    let tempColor = colors[i];
+    colorsArray_1.push(tempColor[0]);
+    colorsArray_1.push(tempColor[1]);
+    colorsArray_1.push(tempColor[2]);
     colorsArray_1.push(1.0);
   }
 
@@ -117,7 +122,7 @@ function main() {
   // Initial call to load scene
   loadScene();
 
-  const camera = new Camera(vec3.fromValues(0, 10, -90), vec3.fromValues(0, 0, 0));
+  const camera = new Camera(vec3.fromValues(0, 0, -90), vec3.fromValues(0, 0, 0));
 
   const renderer = new OpenGLRenderer(canvas);
   renderer.setClearColor(164.0 / 255.0, 233.0 / 255.0, 1.0, 1);

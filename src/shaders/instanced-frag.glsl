@@ -9,49 +9,43 @@ in vec2 fs_UV;
 
 out vec4 out_Col;
 
-float random(float x) {
-
-    return fract(sin(x) * 10000.);
-
+// https://www.shadertoy.com/view/lsf3WH
+vec2 hash( vec2 x )  // replace this by something better
+{
+    const vec2 k = vec2( 0.3183099, 0.3678794 );
+    x = x*k + k.yx;
+    return -1.0 + 2.0*fract( 16.0 * k*fract( x.x*x.y*(x.x+x.y)) );
 }
 
-float noise(vec2 p) {
+float noise( in vec2 p )
+{
+    vec2 i = floor( p );
+    vec2 f = fract( p );
 
-    return random(p.x + p.y * 10000.);
+	vec2 u = f*f*(2.3-2.0*f);
 
+    return mix( mix( dot( hash( i + vec2(0.0,0.0) ), f - vec2(0.0,0.0) ),
+                     dot( hash( i + vec2(1.0,0.0) ), f - vec2(1.0,0.0) ), u.x),
+                mix( dot( hash( i + vec2(0.0,1.0) ), f - vec2(0.0,1.0) ),
+                     dot( hash( i + vec2(1.0,1.0) ), f - vec2(1.0,1.0) ), u.x), u.y);
 }
-
-vec2 sw(vec2 p) { return vec2(floor(p.x), floor(p.y)); }
-vec2 se(vec2 p) { return vec2(ceil(p.x), floor(p.y)); }
-vec2 nw(vec2 p) { return vec2(floor(p.x), ceil(p.y)); }
-vec2 ne(vec2 p) { return vec2(ceil(p.x), ceil(p.y)); }
-
-float smoothNoise(vec2 p) {
-
-    vec2 interp = smoothstep(0., 1., fract(p));
-    float s = mix(noise(sw(p)), noise(se(p)), interp.x);
-    float n = mix(noise(nw(p)), noise(ne(p)), interp.x);
-    return mix(s, n, interp.y);
-
-}
-
-float fractalNoise(vec2 p) {
-
-    float x = 0.;
-    x += smoothNoise(p      );
-    x += smoothNoise(p * 2. ) / 2.;
-    x += smoothNoise(p * 4. ) / 4.;
-    x += smoothNoise(p * 8. ) / 8.;
-    x += smoothNoise(p * 16.) / 16.;
-    x /= 1. + 1./2. + 1./4. + 1./8. + 1./16.;
-    return x;
-
-}
-
 /*
 * Main
 */
 void main()
 {
- 	out_Col = fs_Col;
+  vec2 uv = vec2(fs_Pos.x, fs_Pos.y);
+  float f = 0.0;
+  f = noise( 32.0*uv );
+  uv *= 8.0;
+  mat2 m = mat2( 1.6,  1.2, -1.2,  1.6 );
+		f  = 1.500*noise( uv ); uv = m*uv;
+		f += 0.500*noise( uv ); uv = m*uv;
+		f += 0.4250*noise( uv ); uv = m*uv;
+		f += 0.1625*noise( uv ); uv = m*uv;
+  f = 0.5 + 0.5*f;
+  f *= smoothstep( 0.0, 0.005, 0.001);
+ 	out_Col = 2.0 * vec4(f, f, f, 1.0) + 0.8 * fs_Col;
+
+  //out_Col = fs_Col;
 }

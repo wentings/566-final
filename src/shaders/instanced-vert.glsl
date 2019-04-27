@@ -24,19 +24,36 @@ out vec4 fs_LightVec;
 
 const vec4 lightPos = vec4(0, 5, -5, 1);
 
+float random1( vec2 p , vec2 seed) {
+  return fract(sin(dot(p + seed, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float interpNoise2D(float x, float y) {
+    float intX = floor(x);
+    float fractX = fract(x);
+    float intY = floor(y);
+    float fractY = fract(y);
+
+    float v1 = random1(vec2(intX, intY), vec2(311.7, 127.1));
+    float v2 = random1(vec2(intX + 1.0f, intY), vec2(311.7, 127.1));
+    float v3 = random1(vec2(intX, intY + 1.0f), vec2(311.7, 127.1));
+    float v4 = random1(vec2(intX + 1.0, intY + 1.0), vec2(311.7, 127.1));
+
+    float i1 = mix(v1, v2, fractX);
+    float i2 = mix(v3, v4, fractX);
+
+    return mix(i1, i2, fractY);
+}
+
 void main()
 {
     fs_Col = vs_Col;
-    fs_Pos = vs_Pos;
+    float noise = interpNoise2D(fs_Pos.x, fs_Pos.y);
+    fs_Pos = vs_Pos + vec4(2.0, 2.0, 0, 0);
 
     mat4 transformation = mat4(vs_Transform1, vs_Transform2, vs_Transform3,
       vs_Transform4);
     fs_LightVec = lightPos;
-
-    // vec3 offset = vs_Translate;
-    // offset.z = (sin((u_Time + offset.x) * 3.14159 * 0.1) + cos((u_Time + offset.y) * 3.14159 * 0.1)) * 1.5;
-    //
-    // vec3 billboardPos = offset + vs_Pos.x * u_CameraAxes[0] + vs_Pos.y * u_CameraAxes[1];
-    vec4 transformedPos = transformation * vs_Pos;
+    vec4 transformedPos = transformation * fs_Pos;
     gl_Position = u_ViewProj * transformedPos;
 }

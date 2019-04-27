@@ -1,27 +1,36 @@
-import {vec3, mat4, quat} from 'gl-matrix';
-
+import {vec2, vec3, vec4, mat4, quat} from 'gl-matrix';
+import BiomeType from './BiomeType';
 
 export default class Biome {
   position: vec3 = vec3.create();
-  direction: vec3 = vec3.create(); // Ensure that orientation is normalized;
-  quaternion: quat = quat.create();
+  direction: vec3 = vec3.fromValues(1, 0, 0); // Ensure that orientation is normalized;
+  quaternion: quat = quat.fromValues(0, 0, 0, 1);
 
   // storing adjacent polygons
-  neighbor_polygons: Biomes[] = [];
   border_edges : vec4[] = []; // (x1, y1, x2, y2)
   corners : vec2[] = []; // the vertices
+  color : vec3 = vec3.create();
+  bt: BiomeType = new BiomeType();
+  temperature: number = 0.0;
+  moisture: number = 0.0;
+  ocean: boolean = false;
+  water: boolean = false;
+  coast: boolean = false;
 
 
-  constructor(pos: vec3, orient: vec3, q: quat) {
+  constructor(pos: vec3) {
     this.position = pos;
-    this.direction = orient;
-    this.quaternion = q;
   }
 
   clear() {
     this.position = vec3.fromValues(0, 0, 0);
-    this.direction = vec3.fromValues(0, 0, 1);
-    this.quaternion = quat.fromValues(0, 0, 1, 0);
+  }
+
+  getBiomeType() {
+    this.bt.generateBiomeAttributes(this.ocean, this.water, this.coast,
+    this.temperature, this.moisture);
+    this.bt.setColor();
+    this.color = this.bt.color;
   }
 
   getMatrix() {
@@ -35,7 +44,7 @@ export default class Biome {
 
         // Scale, based on depth
         let S: mat4 = mat4.create();
-        mat4.fromScaling(S, vec3.fromValues(10, 10, 10));
+        mat4.fromScaling(S, vec3.fromValues(5, 5, 5));
 
         // Multiply together
         let transformation: mat4 = mat4.create();
