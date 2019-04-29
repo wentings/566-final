@@ -14,13 +14,13 @@ export default class Biome {
   temperature: number = 0.5;
   moisture: number = 0.8;
   ocean: boolean = false;
-  deepOcean: boolean = false;
   water: boolean = false;
   coast: boolean = false;
+  size: number = 1.2;
 
-
-  constructor(pos: vec3) {
+  constructor(pos: vec3, size: number) {
     this.position = pos;
+    this.size = size;
   }
 
   clear() {
@@ -62,7 +62,7 @@ export default class Biome {
 
         // Scale, based on depth
         let S: mat4 = mat4.create();
-        mat4.fromScaling(S, vec3.fromValues(1.2, 1, 1.2));
+        mat4.fromScaling(S, vec3.fromValues(this.size, 1, this.size));
 
         // Multiply together
         let transformation: mat4 = mat4.create();
