@@ -6074,8 +6074,19 @@ let plane;
 let cube;
 let hex;
 let planePos;
-const controls = {};
-function loadScene() {
+const controls = {
+    temp: 1.0,
+    moisture: 1.0,
+    noisy_edge: true,
+    noisy_shade: true,
+    number_of_regions: "small"
+};
+let prevTemp = 1.0;
+let prevMoisture = 1.0;
+let prevNoisyEdges = true;
+let prevNoisyShades = true;
+let prevNumberofRegions = "small";
+function loadScene(temp, mois, numberOfRegions) {
     square = new __WEBPACK_IMPORTED_MODULE_3__geometry_Square__["a" /* default */](__WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].fromValues(0, 0, 0));
     square.create();
     hex = new __WEBPACK_IMPORTED_MODULE_6__geometry_Hexagon__["a" /* default */](__WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].fromValues(0, 0, 0));
@@ -6086,7 +6097,7 @@ function loadScene() {
     planePos = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec2 */].fromValues(0, 0);
     cube.create();
     var i, j;
-    var bGrid = new __WEBPACK_IMPORTED_MODULE_7__biomeSys_biomeGrid__["a" /* default */]();
+    var bGrid = new __WEBPACK_IMPORTED_MODULE_7__biomeSys_biomeGrid__["a" /* default */](temp, mois, numberOfRegions);
     bGrid.draw();
     let transformations = bGrid.transformHistory;
     let colors = bGrid.colorHistory;
@@ -6139,6 +6150,11 @@ function loadScene() {
 function main() {
     // Add controls to the gui
     const gui = new __WEBPACK_IMPORTED_MODULE_2_dat_gui__["GUI"]();
+    gui.add(controls, 'temp', 0.5, 2.0).step(0.1);
+    gui.add(controls, 'moisture', 0.5, 2.0).step(0.1);
+    gui.add(controls, 'noisy_edge');
+    gui.add(controls, 'noisy_shade');
+    gui.add(controls, 'number_of_regions', ['small', 'medium', 'large']);
     // Initial display for framerate
     const stats = __WEBPACK_IMPORTED_MODULE_1_stats_js__();
     stats.setMode(0);
@@ -6156,7 +6172,7 @@ function main() {
     // Later, we can import `gl` from `globals.ts` to access it
     Object(__WEBPACK_IMPORTED_MODULE_10__globals__["b" /* setGL */])(gl);
     // Initial call to load scene
-    loadScene();
+    loadScene(prevTemp, prevMoisture, prevNumberofRegions);
     const camera = new __WEBPACK_IMPORTED_MODULE_9__Camera__["a" /* default */](__WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].fromValues(0, -20, 0), __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].fromValues(0, 0, 0));
     const renderer = new __WEBPACK_IMPORTED_MODULE_8__rendering_gl_OpenGLRenderer__["a" /* default */](canvas);
     renderer.setClearColor(164.0 / 255.0, 233.0 / 255.0, 1.0, 1);
@@ -6187,15 +6203,29 @@ function main() {
         gl.viewport(0, 0, window.innerWidth, window.innerHeight);
         renderer.clear();
         processKeyPresses();
+        if (controls.temp != prevTemp ||
+            controls.moisture != prevMoisture ||
+            controls.number_of_regions != prevNumberofRegions) {
+            prevTemp = controls.temp;
+            prevMoisture = controls.moisture;
+            prevNumberofRegions = controls.number_of_regions;
+            loadScene(prevTemp, prevMoisture, prevNumberofRegions);
+        }
+        if (controls.noisy_edge != prevNoisyEdges) {
+            prevNoisyEdges = controls.noisy_edge;
+        }
+        if (controls.noisy_shade != prevNoisyShades) {
+            prevNoisyShades = controls.noisy_shade;
+        }
         // renderer.render(camera, lambert, [
         //   plane,
         // ]);
         renderer.render(camera, flat, [
             square,
-        ]);
+        ], false, false);
         renderer.render(camera, instance, [
             plane,
-        ]);
+        ], prevNoisyEdges, prevNoisyShades);
         stats.end();
         // Tell the browser to call `tick` again whenever it renders a new frame
         requestAnimationFrame(tick);
@@ -13546,11 +13576,17 @@ class Hexagon extends __WEBPACK_IMPORTED_MODULE_1__rendering_gl_Drawable__["a" /
 
 
 class biomeGrid {
-    constructor() {
+    constructor(temp, mois, numberOfRegions) {
         this.biomeGrid = [];
         this.transformHistory = [];
         this.colorHistory = [];
         this.pointsPositions = [];
+        this.univ_Temp = 0.0;
+        this.univ_Mois = 0.0;
+        this.number_of_regions = "";
+        this.univ_Temp = temp;
+        this.univ_Mois = mois;
+        this.number_of_regions = numberOfRegions;
     }
     generatePositions() {
         var i, j;
@@ -13562,20 +13598,32 @@ class biomeGrid {
             }
         }
     }
+    generateRandom(min, max) {
+        var random = Math.random() * (max - min) + min;
+        return random;
+    }
     setOcean() {
         var i, j;
-        // when j = 0
+        // edges
         for (i = -10; i < 10; i++) {
             this.biomeGrid[(i + 10) * 20].ocean = true;
+            this.biomeGrid[(i + 10) * 20].deepOcean = true;
         }
         for (i = -10; i < 10; i++) {
             this.biomeGrid[(i + 10) * 20 + 19].ocean = true;
+            this.biomeGrid[(i + 10) * 20 + 19].deepOcean = true;
         }
         for (j = -10; j < 10; j++) {
             this.biomeGrid[(-10 + 10) * 20 + (j + 10)].ocean = true;
+            this.biomeGrid[(-10 + 10) * 20 + (j + 10)].deepOcean = true;
         }
         for (j = -10; j < 10; j++) {
             this.biomeGrid[(9 + 10) * 20 + (j + 10)].ocean = true;
+            this.biomeGrid[(9 + 10) * 20 + (j + 10)].deepOcean = true;
+        }
+        // all the other pieces
+        for (j = -8; j < -4; j++) {
+            this.biomeGrid[((-5 + 10) * 20 + (j + 10))].ocean = true;
         }
         for (i = -9; i < -5; i++) {
             for (j = -9; j < -6; j++) {
@@ -13585,6 +13633,7 @@ class biomeGrid {
         for (j = 0; j < 6; j++) {
             this.biomeGrid[((-9 + 10) * 20 + (j + 10))].ocean = true;
         }
+        this.biomeGrid[((-4 + 10) * 20 + (-7 + 10))].ocean = true;
         this.biomeGrid[((-9 + 10) * 20 + (8 + 10))].ocean = true;
         this.biomeGrid[((-7 + 10) * 20 + (8 + 10))].ocean = true;
         for (i = -2; i < 1; i++) {
@@ -13594,14 +13643,181 @@ class biomeGrid {
             this.biomeGrid[(i + 10) * 20 + 18].ocean = true;
         }
         this.biomeGrid[((0 + 10) * 20 + (7 + 10))].ocean = true;
+        for (i = 6; i < 9; i++) {
+            this.biomeGrid[(i + 10) * 20 + 17].ocean = true;
+        }
+        for (i = 7; i < 9; i++) {
+            for (j = 6; j < 9; j++) {
+                this.biomeGrid[(i + 10) * 20 + 10 + j].ocean = true;
+            }
+        }
+        for (j = 4; j < 6; j++) {
+            this.biomeGrid[(8 + 10) * 20 + 10 + j].ocean = true;
+        }
+        for (j = -3; j < 0; j++) {
+            this.biomeGrid[(8 + 10) * 20 + 10 + j].ocean = true;
+        }
+        for (i = 6; i < 9; i++) {
+            for (j = -9; j < -7; j++) {
+                this.biomeGrid[(i + 10) * 20 + 10 + j].ocean = true;
+            }
+        }
+        for (i = 4; i < 6; i++) {
+            this.biomeGrid[(i + 10) * 20 + 10 + -9].ocean = true;
+        }
+    }
+    setCoast() {
+        var i, j;
+        for (i = -9; i < 9; i = i + 1) {
+            for (j = -9; j < 9; j = j + 1) {
+                // check if any surrounding block is an ocean
+                if (this.checkSurroundingOcean(i, j)) {
+                    this.biomeGrid[((i + 10) * 20 + (j + 10))].coast = true;
+                }
+            }
+        }
+    }
+    checkSurroundingOcean(i, j) {
+        var topLeft = this.biomeGrid[((i - 1 + 10) * 20 + (j - 1 + 10))].ocean;
+        var left = this.biomeGrid[((i - 1 + 10) * 20 + (j + 10))].ocean;
+        var bottomLeft = this.biomeGrid[((i - 1 + 10) * 20 + (j + 1 + 10))].ocean;
+        var top = this.biomeGrid[((i + 10) * 20 + (j - 1 + 10))].ocean;
+        var bottom = this.biomeGrid[((i + 10) * 20 + (j + 1 + 10))].ocean;
+        var topRight = this.biomeGrid[((i + 1 + 10) * 20 + (j - 1 + 10))].ocean;
+        var right = this.biomeGrid[((i + 1 + 10) * 20 + (j + 10))].ocean;
+        var bottomRight = this.biomeGrid[((i + 1 + 10) * 20 + (j + 1 + 10))].ocean;
+        return topLeft || left || bottomLeft || top || bottom ||
+            topRight || right || bottomRight;
+    }
+    setLake() {
+        var i;
+        for (i = 0; i < 6; i = i + 1) {
+            this.setSurroudingMarshes(i, -1);
+        }
+        for (i = 1; i < 6; i = i + 1) {
+            this.setSurroudingMarshes(i, -2);
+        }
+        for (i = 3; i < 6; i = i + 1) {
+            this.setSurroudingMarshes(i, -3);
+        }
+        for (i = 0; i < 6; i = i + 1) {
+            this.biomeGrid[((i + 10) * 20 + (-1 + 10))].water = true;
+            this.biomeGrid[((i + 10) * 20 + (-1 + 10))].moisture = 1.0;
+            this.biomeGrid[((i + 10) * 20 + (-1 + 10))].temperature = 0.5;
+        }
+        for (i = 1; i < 6; i = i + 1) {
+            this.biomeGrid[((i + 10) * 20 + (-2 + 10))].water = true;
+            this.biomeGrid[((i + 10) * 20 + (-2 + 10))].moisture = 1.0;
+            this.biomeGrid[((i + 10) * 20 + (-2 + 10))].temperature = 0.5;
+        }
+        for (i = 3; i < 6; i = i + 1) {
+            this.biomeGrid[((i + 10) * 20 + (-3 + 10))].water = true;
+            this.biomeGrid[((i + 10) * 20 + (-3 + 10))].moisture = 1.0;
+            this.biomeGrid[((i + 10) * 20 + (-3 + 10))].temperature = 0.5;
+        }
+    }
+    setSurroudingMarshes(i, j) {
+        this.setOneMarsh(((i - 1 + 10) * 20 + (j - 1 + 10)));
+        this.setOneMarsh(((i - 1 + 10) * 20 + (j + 10)));
+        this.setOneMarsh(((i - 1 + 10) * 20 + (j + 1 + 10)));
+        this.setOneMarsh(((i + 10) * 20 + (j - 1 + 10)));
+        this.setOneMarsh(((i + 10) * 20 + (j + 1 + 10)));
+        this.setOneMarsh(((i + 1 + 10) * 20 + (j - 1 + 10)));
+        this.setOneMarsh(((i + 1 + 10) * 20 + (j + 10)));
+        this.setOneMarsh(((i + 1 + 10) * 20 + (j + 1 + 10)));
+    }
+    setOneMarsh(i) {
+        this.biomeGrid[i].water = true;
+        this.biomeGrid[i].temperature = 0.95;
+    }
+    setMoisture() {
+        // the moisture decreases radially horizontally i highest at 4, j highest at -2
+        var i, j;
+        for (i = 1; i < 10; i = i + 1) {
+            for (j = -2; j < 10; j = j + 1) {
+                var current_mois = this.biomeGrid[((i + 10) * 20 + (j + 10))].moisture;
+                this.biomeGrid[((i + 10) * 20 + (j + 10))].moisture =
+                    current_mois - Math.abs(i - 1) * this.generateRandom(0.05, 0.5) -
+                        Math.abs(j - -2) * this.generateRandom(0.05, 0.5);
+            }
+        }
+        for (i = 1; i < 10; i = i + 1) {
+            for (j = -2; j > -10; j = j - 1) {
+                var current_mois = this.biomeGrid[((i + 10) * 20 + (j + 10))].moisture;
+                this.biomeGrid[((i + 10) * 20 + (j + 10))].moisture =
+                    current_mois - Math.abs(i - 1) * this.generateRandom(0.05, 0.5) -
+                        Math.abs(j - -2) * this.generateRandom(0.05, 0.5);
+            }
+        }
+        for (i = 1; i > -10; i = i - 1) {
+            for (j = -2; j > -10; j = j - 1) {
+                var current_mois = this.biomeGrid[((i + 10) * 20 + (j + 10))].moisture;
+                this.biomeGrid[((i + 10) * 20 + (j + 10))].moisture =
+                    current_mois - Math.abs(i - 1) * this.generateRandom(0.02, 0.1) -
+                        Math.abs(j - -2) * this.generateRandom(0.02, 0.3);
+            }
+        }
+        for (i = 1; i > -10; i = i - 1) {
+            for (j = -2; j < 10; j = j + 1) {
+                var current_mois = this.biomeGrid[((i + 10) * 20 + (j + 10))].moisture;
+                this.biomeGrid[((i + 10) * 20 + (j + 10))].moisture =
+                    current_mois - Math.abs(i - 1) * this.generateRandom(0.02, 0.1) -
+                        Math.abs(j - -2) * this.generateRandom(0.02, 0.3);
+            }
+        }
+    }
+    setTemperature() {
+        var i, j;
+        // coldest being 0,0
+        for (i = 0; i < 10; i = i + 1) {
+            for (j = 0; j < 10; j = j + 1) {
+                var current_temp = this.biomeGrid[((i + 10) * 20 + (j + 10))].temperature;
+                this.biomeGrid[((i + 10) * 20 + (j + 10))].temperature =
+                    current_temp - Math.abs(i) * this.generateRandom(0.02, 0.2) -
+                        Math.abs(j) * this.generateRandom(0.02, 0.16);
+            }
+        }
+        for (i = 0; i < 10; i = i + 1) {
+            for (j = 0; j > -10; j = j - 1) {
+                var current_temp = this.biomeGrid[((i + 10) * 20 + (j + 10))].temperature;
+                this.biomeGrid[((i + 10) * 20 + (j + 10))].temperature =
+                    current_temp - Math.abs(i) * this.generateRandom(0.02, 0.2) -
+                        Math.abs(j) * this.generateRandom(0.02, 0.16);
+            }
+        }
+        for (i = 0; i > -10; i = i - 1) {
+            for (j = 0; j > -10; j = j - 1) {
+                var current_mois = this.biomeGrid[((i + 10) * 20 + (j + 10))].temperature;
+                this.biomeGrid[((i + 10) * 20 + (j + 10))].temperature =
+                    current_temp - Math.abs(i) * this.generateRandom(0.05, 0.2) -
+                        Math.abs(j) * this.generateRandom(0.05, 0.2);
+            }
+        }
+        for (i = 0; i > -10; i = i - 1) {
+            for (j = 0; j < 10; j = j + 1) {
+                var current_mois = this.biomeGrid[((i + 10) * 20 + (j + 10))].temperature;
+                this.biomeGrid[((i + 10) * 20 + (j + 10))].temperature =
+                    current_temp - Math.abs(i) * this.generateRandom(0.05, 0.2) -
+                        Math.abs(j) * this.generateRandom(0.05, 0.2);
+            }
+        }
     }
     setGridConditions() {
+        this.setMoisture();
+        this.setTemperature();
         this.setOcean();
+        this.setCoast();
+        this.setLake();
     }
     draw() {
         this.generatePositions();
-        this.setGridConditions();
         var i;
+        for (i = 0; i < this.biomeGrid.length; i++) {
+            var currentBiome = this.biomeGrid[i];
+            currentBiome.temperature = this.univ_Temp;
+            currentBiome.moisture = this.univ_Mois;
+        }
+        this.setGridConditions();
         for (i = 0; i < this.biomeGrid.length; i++) {
             // check if the biome is on the outskirts
             var currentBiome = this.biomeGrid[i];
@@ -13635,9 +13851,10 @@ class Biome {
         this.corners = []; // the vertices
         this.color = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].create();
         this.bt = new __WEBPACK_IMPORTED_MODULE_1__BiomeType__["a" /* default */]();
-        this.temperature = 0.0;
-        this.moisture = 0.0;
+        this.temperature = 0.5;
+        this.moisture = 0.8;
         this.ocean = false;
+        this.deepOcean = false;
         this.water = false;
         this.coast = false;
         this.position = pos;
@@ -13645,7 +13862,22 @@ class Biome {
     clear() {
         this.position = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].fromValues(0, 0, 0);
     }
+    curbTempMois() {
+        if (this.temperature > 1.0) {
+            this.temperature = 1.0;
+        }
+        if (this.moisture > 1.0) {
+            this.moisture = 1.0;
+        }
+        if (this.temperature < 0.0) {
+            this.temperature = 0.0;
+        }
+        if (this.moisture < 0.0) {
+            this.moisture = 0.0;
+        }
+    }
     getBiomeType() {
+        this.curbTempMois();
         this.bt.generateBiomeAttributes(this.ocean, this.water, this.coast, this.temperature, this.moisture);
         this.bt.setColor();
         this.color = this.bt.color;
@@ -13734,7 +13966,7 @@ class BiomeType {
             else
                 this.type = 'TEMPERATE_DESERT';
         }
-        else {
+        else if (temperature <= 1.0) {
             if (moisture > 0.66)
                 this.type = 'TROPICAL_RAIN_FOREST';
             else if (moisture > 0.33)
@@ -13782,6 +14014,9 @@ class BiomeType {
         else if (this.type == "TEMPERATE_DESERT") {
             this.color = this.rgb(238, 232, 170);
         }
+        else if (this.type == "TROPICAL_RAIN_FOREST") {
+            this.color = this.rgb(0, 200, 0);
+        }
         else if (this.type == "TEMPERATE_RAIN_FOREST") {
             this.color = this.rgb(0, 128, 0);
         }
@@ -13797,6 +14032,9 @@ class BiomeType {
         else if (this.type == "SUBTROPICAL_DESERT") {
             this.color = this.rgb(128, 128, 0);
         }
+        // else {
+        //   this.color = this.rgb(255,0,0);
+        // }
     }
 }
 /* harmony export (immutable) */ __webpack_exports__["a"] = BiomeType;
@@ -13827,7 +14065,7 @@ class OpenGLRenderer {
     clear() {
         __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].clear(__WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].COLOR_BUFFER_BIT | __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].DEPTH_BUFFER_BIT);
     }
-    render(camera, prog, drawables) {
+    render(camera, prog, drawables, noisy_edge, noisy_shade) {
         let model = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["a" /* mat4 */].create();
         let viewProj = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["a" /* mat4 */].create();
         let color = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["e" /* vec4 */].fromValues(1, 0, 0, 1);
@@ -13835,6 +14073,18 @@ class OpenGLRenderer {
         __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["a" /* mat4 */].multiply(viewProj, camera.projectionMatrix, camera.viewMatrix);
         prog.setModelMatrix(model);
         prog.setViewProjMatrix(viewProj);
+        if (noisy_edge) {
+            prog.setEdge(1);
+        }
+        else {
+            prog.setEdge(0);
+        }
+        if (noisy_shade) {
+            prog.setShade(1);
+        }
+        else {
+            prog.setShade(0);
+        }
         for (let drawable of drawables) {
             prog.draw(drawable);
         }
@@ -17003,6 +17253,8 @@ class ShaderProgram {
         this.unifPlanePos = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_PlanePos");
         this.unifDayNight = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_DayNight");
         this.unifDensity = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_Density");
+        this.unifNoisyEdge = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_NoisyEdge");
+        this.unifNoisyShade = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_NoisyShade");
     }
     use() {
         if (activeProgram !== this.prog) {
@@ -17056,6 +17308,18 @@ class ShaderProgram {
         this.use();
         if (this.unifTime !== -1) {
             __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].uniform1f(this.unifTime, t);
+        }
+    }
+    setEdge(boo) {
+        this.use();
+        if (this.unifNoisyEdge !== -1) {
+            __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].uniform1i(this.unifNoisyEdge, boo);
+        }
+    }
+    setShade(boo) {
+        this.use();
+        if (this.unifNoisyShade !== -1) {
+            __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].uniform1i(this.unifNoisyShade, boo);
         }
     }
     setPlanePos(pos) {
@@ -17164,13 +17428,13 @@ module.exports = "#version 300 es\nprecision highp float;\n\nuniform vec3 u_Eye,
 /* 78 */
 /***/ (function(module, exports) {
 
-module.exports = "#version 300 es\n\nuniform mat4 u_ViewProj;\nuniform float u_Time;\nuniform mat4 u_Model;\n\nuniform mat3 u_CameraAxes; // Used for rendering particles as billboards (quads that are always looking at the camera)\n// gl_Position = center + vs_Pos.x * camRight + vs_Pos.y * camUp;\n\nin vec4 vs_Pos; // Non-instanced; each particle is the same quad drawn in a different place\nin vec4 vs_Nor; // Non-instanced, and presently unused\nin vec4 vs_Col; // An instanced rendering attribute; each particle instance has a different color\nin vec3 vs_Translate; // Another instance rendering attribute used to position each quad instance in the scene\nin vec2 vs_UV; // Non-instanced, and presently unused in main(). Feel free to use it for your meshes.\n\nin vec4 vs_Transform1;\nin vec4 vs_Transform2;\nin vec4 vs_Transform3;\nin vec4 vs_Transform4;\n\nout vec4 fs_Col;\nout vec4 fs_Pos;\nout vec4 fs_Nor;\nout vec4 fs_LightVec;\n\nconst vec4 lightPos = vec4(0, 5, -5, 1);\n\nfloat random (vec2 st) {\n    return fract(sin(dot(st.xy,\n                         vec2(12.9898,78.233)))*\n        43758.5453123);\n}\n\nfloat random1( vec2 p , vec2 seed) {\n  return fract(sin(dot(p + seed, vec2(127.1, 311.7))) * 43758.5453);\n}\n\nfloat interpNoise2D(float x, float y) {\n    float intX = floor(x);\n    float fractX = fract(x);\n    float intY = floor(y);\n    float fractY = fract(y);\n\n    float v1 = random1(vec2(intX, intY), vec2(311.7, 127.1));\n    float v2 = random1(vec2(intX + 1.0f, intY), vec2(311.7, 127.1));\n    float v3 = random1(vec2(intX, intY + 1.0f), vec2(311.7, 127.1));\n    float v4 = random1(vec2(intX + 1.0, intY + 1.0), vec2(311.7, 127.1));\n\n    float i1 = mix(v1, v2, fractX);\n    float i2 = mix(v3, v4, fractX);\n\n    return mix(i1, i2, fractY);\n}\n\nfloat generateHeight(float x, float y) {\n  // noise two - elevation\n    float total = 0.0;\n    float persistence = 0.5f;\n    float octaves = 10.0;\n\n    for (float i = 0.0; i < octaves; i = i + 1.0) {\n        float freq = pow(2.0f, i);\n        float amp = pow(persistence, i);\n        total += (1.0 / freq) * interpNoise2D(x * freq, y * freq);\n    }\n    return total;\n}\n\nvoid main()\n{\n    fs_Col = vs_Col;\n\n    float noise = 0.02 * random(vs_Pos.xy);\n    mat4 transformation = mat4(vs_Transform1, vs_Transform2, vs_Transform3,\n      vs_Transform4);\n    vec4 modelposition = vec4(vs_Pos.x + noise, vs_Pos.y, vs_Pos.z + noise, 1.0);\n    modelposition = u_Model * modelposition;\n    vec4 transformedPos = transformation * modelposition;\n    transformedPos += vec4(-0.05 * random1(transformedPos.xz, transformedPos.yz), 0,\n    0.1 * random1(transformedPos.xz, transformedPos.xy), 0.0);\n    fs_Pos = transformedPos;\n    fs_LightVec = lightPos - transformedPos;\n    gl_Position = u_ViewProj * transformedPos;\n}\n"
+module.exports = "#version 300 es\n\nuniform mat4 u_ViewProj;\nuniform float u_Time;\nuniform mat4 u_Model;\nuniform bool u_NoisyEdge;\n\nuniform mat3 u_CameraAxes; // Used for rendering particles as billboards (quads that are always looking at the camera)\n// gl_Position = center + vs_Pos.x * camRight + vs_Pos.y * camUp;\n\nin vec4 vs_Pos; // Non-instanced; each particle is the same quad drawn in a different place\nin vec4 vs_Nor; // Non-instanced, and presently unused\nin vec4 vs_Col; // An instanced rendering attribute; each particle instance has a different color\nin vec3 vs_Translate; // Another instance rendering attribute used to position each quad instance in the scene\nin vec2 vs_UV; // Non-instanced, and presently unused in main(). Feel free to use it for your meshes.\n\nin vec4 vs_Transform1;\nin vec4 vs_Transform2;\nin vec4 vs_Transform3;\nin vec4 vs_Transform4;\n\nout vec4 fs_Col;\nout vec4 fs_Pos;\nout vec4 fs_Nor;\nout vec4 fs_LightVec;\n\nconst vec4 lightPos = vec4(0, 5, -5, 1);\n\nfloat random (vec2 st) {\n    return fract(sin(dot(st.xy,\n                         vec2(12.9898,78.233)))*\n        43758.5453123);\n}\n\nfloat random1( vec2 p , vec2 seed) {\n  return fract(sin(dot(p + seed, vec2(127.1, 311.7))) * 43758.5453);\n}\n\nfloat interpNoise2D(float x, float y) {\n    float intX = floor(x);\n    float fractX = fract(x);\n    float intY = floor(y);\n    float fractY = fract(y);\n\n    float v1 = random1(vec2(intX, intY), vec2(311.7, 127.1));\n    float v2 = random1(vec2(intX + 1.0f, intY), vec2(311.7, 127.1));\n    float v3 = random1(vec2(intX, intY + 1.0f), vec2(311.7, 127.1));\n    float v4 = random1(vec2(intX + 1.0, intY + 1.0), vec2(311.7, 127.1));\n\n    float i1 = mix(v1, v2, fractX);\n    float i2 = mix(v3, v4, fractX);\n\n    return mix(i1, i2, fractY);\n}\n\nfloat generateHeight(float x, float y) {\n  // noise two - elevation\n    float total = 0.0;\n    float persistence = 0.5f;\n    float octaves = 10.0;\n\n    for (float i = 0.0; i < octaves; i = i + 1.0) {\n        float freq = pow(2.0f, i);\n        float amp = pow(persistence, i);\n        total += (1.0 / freq) * interpNoise2D(x * freq, y * freq);\n    }\n    return total;\n}\n\nvoid main()\n{\n    fs_Col = vs_Col;\n    mat4 transformation;\n    vec4 modelposition;\n    vec4 transformedPos;\n    if (u_NoisyEdge) {\n      float noise = 0.02 * random(vs_Pos.xy);\n      transformation = mat4(vs_Transform1, vs_Transform2, vs_Transform3,\n        vs_Transform4);\n      modelposition = vec4(vs_Pos.x + noise, vs_Pos.y, vs_Pos.z + noise, 1.0);\n      modelposition = u_Model * modelposition;\n      transformedPos = transformation * modelposition;\n      transformedPos += vec4(-0.05 * random1(transformedPos.xz, transformedPos.yz), 0,\n      0.1 * random1(transformedPos.xz, transformedPos.xy), 0.0);\n      fs_Pos = transformedPos;\n    } else {\n      transformation = mat4(vs_Transform1, vs_Transform2, vs_Transform3,\n        vs_Transform4);\n      modelposition = vs_Pos;\n      modelposition = u_Model * modelposition;\n      transformedPos = transformation * modelposition;\n      fs_Pos = vs_Pos;\n    }\n\n    fs_LightVec = lightPos - transformedPos;\n    gl_Position = u_ViewProj * transformedPos;\n}\n"
 
 /***/ }),
 /* 79 */
 /***/ (function(module, exports) {
 
-module.exports = "#version 300 es\nprecision highp float;\n\n#define FLT_MAX 3.402823466e+38\n#define FLT_MIN 1.175494351e-38\n\nin vec4 fs_Col;\nin vec4 fs_Pos;\nin vec4 fs_Nor;\nin vec4 fs_LightVec;\nin vec2 fs_UV;\n\nout vec4 out_Col;\n\n// https://www.shadertoy.com/view/lsf3WH\nvec2 hash( vec2 x )  // replace this by something better\n{\n    const vec2 k = vec2( 0.3183099, 0.3678794 );\n    x = x*k + k.yx;\n    return -1.0 + 2.0*fract( 16.0 * k*fract( x.x*x.y*(x.x+x.y)) );\n}\n\nfloat noise( in vec2 p )\n{\n    vec2 i = floor( p );\n    vec2 f = fract( p );\n\n\tvec2 u = f*f*(2.3-2.0*f);\n\n    return mix( mix( dot( hash( i + vec2(0.0,0.0) ), f - vec2(0.0,0.0) ),\n                     dot( hash( i + vec2(1.0,0.0) ), f - vec2(1.0,0.0) ), u.x),\n                mix( dot( hash( i + vec2(0.0,1.0) ), f - vec2(0.0,1.0) ),\n                     dot( hash( i + vec2(1.0,1.0) ), f - vec2(1.0,1.0) ), u.x), u.y);\n}\n\n// vec4 findMinMax() {\n//   float min_x = FLT_MAX;\n//   float min_z = FLT_MAX;\n//   float max_x = FLT_MIN;\n//   float max_z = FLT_MIN;\n//   if (fs_Pos.x < min_x) {\n//     min_x = fs_Pos.x;\n//   }\n// }\n\n\n/*\n* Main\n*/\nvoid main()\n{\n  // vec2 uv = vec2(fs_Pos.x, fs_Pos.y);\n  // float f = 0.0;\n  // f = noise( 32.0*uv );\n  // uv *= 8.0;\n  // mat2 m = mat2( 1.6,  1.2, -1.2,  1.6 );\n\t// \tf  = 1.500*noise( uv ); uv = m*uv;\n\t// \tf += 0.500*noise( uv ); uv = m*uv;\n\t// \tf += 0.4250*noise( uv ); uv = m*uv;\n\t// \tf += 0.1625*noise( uv ); uv = m*uv;\n  // f = 0.5 + 0.5*f;\n  // f *= smoothstep( 0.0, 0.005, 0.001);\n \t// out_Col = 2.0 * vec4(f, f, f, 1.0) + 0.8 * fs_Col;\n  vec4 color = vec4(0.1);\n  // if (fs_Pos.x < -1000.0) {\n  //   color = vec4(1.0);\n  // }\n  out_Col = vec4(0.5);\n}\n"
+module.exports = "#version 300 es\nprecision highp float;\n\n#define FLT_MAX 3.402823466e+38\n#define FLT_MIN 1.175494351e-38\n\nin vec4 fs_Col;\nin vec4 fs_Pos;\nin vec4 fs_Nor;\nin vec4 fs_LightVec;\nin vec2 fs_UV;\nuniform bool u_NoisyShade;\n\nout vec4 out_Col;\n\n// https://www.shadertoy.com/view/lsf3WH\nvec2 hash( vec2 x )  // replace this by something better\n{\n    const vec2 k = vec2( 0.3183099, 0.3678794 );\n    x = x*k + k.yx;\n    return -1.0 + 2.0*fract( 16.0 * k*fract( x.x*x.y*(x.x+x.y)) );\n}\n\nfloat noise( in vec2 p )\n{\n    vec2 i = floor( p );\n    vec2 f = fract( p );\n\n\tvec2 u = f*f*(2.3-2.0*f);\n\n    return mix( mix( dot( hash( i + vec2(0.0,0.0) ), f - vec2(0.0,0.0) ),\n                     dot( hash( i + vec2(1.0,0.0) ), f - vec2(1.0,0.0) ), u.x),\n                mix( dot( hash( i + vec2(0.0,1.0) ), f - vec2(0.0,1.0) ),\n                     dot( hash( i + vec2(1.0,1.0) ), f - vec2(1.0,1.0) ), u.x), u.y);\n}\n\n\n\n/*\n* Main\n*/\nvoid main()\n{\n  if (u_NoisyShade) {\n    vec2 uv = vec2(fs_Pos.x, fs_Pos.y);\n    float f = 0.0;\n    f = noise( 32.0*uv );\n    uv *= 8.0;\n    mat2 m = mat2( 1.6,  1.2, -1.2,  1.6 );\n    f  = 0.5000*noise( uv ); uv = m*uv;\n    f += 0.2500*noise( uv ); uv = m*uv;\n    f += 0.1250*noise( uv ); uv = m*uv;\n    f += 0.0625*noise( uv ); uv = m*uv;\n    f = 0.5 + 0.5*f;\n    f *= smoothstep( 0.0, 0.005, 0.001);\n   \tout_Col = 2.0 * vec4(f, f, f, 1.0) + 0.8 * fs_Col;\n  }\n  else {\n    out_Col = fs_Col;    \n  }\n}\n"
 
 /***/ })
 /******/ ]);

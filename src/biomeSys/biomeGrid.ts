@@ -8,10 +8,12 @@ export default class biomeGrid {
     pointsPositions: vec2[] = [];
     univ_Temp: number = 0.0;
     univ_Mois: number = 0.0;
+    number_of_regions: string = "";
 
-    constructor(temp: number, mois: number) {
+    constructor(temp: number, mois: number, numberOfRegions: string) {
       this.univ_Temp = temp;
       this.univ_Mois = mois;
+      this.number_of_regions = numberOfRegions;
     }
 
     generatePositions() {
@@ -256,14 +258,18 @@ export default class biomeGrid {
 
     draw() {
       this.generatePositions();
+      var i;
+      for (i = 0; i < this.biomeGrid.length; i++) {
+        var currentBiome = this.biomeGrid[i];
+        currentBiome.temperature = this.univ_Temp;
+        currentBiome.moisture = this.univ_Mois;
+      }
       this.setGridConditions();
-            var i;
+
       for (i = 0; i < this.biomeGrid.length; i++) {
         // check if the biome is on the outskirts
         var currentBiome = this.biomeGrid[i];
-        currentBiome.curbTempMois();
         currentBiome.getBiomeType();
-        console.log("moisture " + currentBiome.moisture + " temperature " + currentBiome.temperature);
         let transMat : any = currentBiome.getMatrix();
         this.transformHistory.push(transMat);
         this.colorHistory.push(currentBiome.color);

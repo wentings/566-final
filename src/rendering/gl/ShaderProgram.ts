@@ -46,6 +46,8 @@ class ShaderProgram {
   unifPlanePos: WebGLUniformLocation;
   unifDayNight: WebGLUniformLocation;
   unifDensity: WebGLUniformLocation;
+  unifNoisyEdge: WebGLUniformLocation;
+  unifNoisyShade: WebGLUniformLocation;
 
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
@@ -71,6 +73,7 @@ class ShaderProgram {
     this.unifRef   = gl.getUniformLocation(this.prog, "u_Ref");
     this.unifUp   = gl.getUniformLocation(this.prog, "u_Up");
 
+
     this.attrTransform1 = gl.getAttribLocation(this.prog, "vs_Transform1");
     this.attrTransform2 = gl.getAttribLocation(this.prog, "vs_Transform2");
     this.attrTransform3 = gl.getAttribLocation(this.prog, "vs_Transform3");
@@ -79,6 +82,8 @@ class ShaderProgram {
     this.unifPlanePos   = gl.getUniformLocation(this.prog, "u_PlanePos");
     this.unifDayNight = gl.getUniformLocation(this.prog, "u_DayNight");
     this.unifDensity = gl.getUniformLocation(this.prog, "u_Density");
+    this.unifNoisyEdge = gl.getUniformLocation(this.prog, "u_NoisyEdge");
+    this.unifNoisyShade = gl.getUniformLocation(this.prog, "u_NoisyShade");
   }
 
   use() {
@@ -140,6 +145,20 @@ class ShaderProgram {
       this.use();
       if (this.unifTime !== -1) {
         gl.uniform1f(this.unifTime, t);
+      }
+    }
+
+    setEdge(boo: number) {
+      this.use();
+      if (this.unifNoisyEdge !== -1) {
+        gl.uniform1i(this.unifNoisyEdge, boo);
+      }
+    }
+
+    setShade(boo: number) {
+      this.use();
+      if (this.unifNoisyShade !== -1) {
+        gl.uniform1i(this.unifNoisyShade, boo);
       }
     }
 

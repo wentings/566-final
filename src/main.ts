@@ -21,10 +21,20 @@ let hex : Hexagon;
 let planePos: vec2;
 
 const controls = {
+  temp: 1.0,
+  moisture: 1.0,
+  noisy_edge: true,
+  noisy_shade: true,
+  number_of_regions: "small"
 };
 
+let prevTemp : number = 1.0;
+let prevMoisture: number = 1.0;
+let prevNoisyEdges: boolean = true;
+let prevNoisyShades: boolean = true;
+let prevNumberofRegions: string = "small";
 
-function loadScene() {
+function loadScene(temp: number, mois: number, numberOfRegions: string) {
   square = new Square(vec3.fromValues(0, 0, 0));
   square.create();
   hex = new Hexagon(vec3.fromValues(0, 0, 0));
@@ -36,7 +46,7 @@ function loadScene() {
   cube.create();
 
   var i, j;
-  var bGrid = new biomeGrid(1.0, 1.0);
+  var bGrid = new biomeGrid(temp, mois, numberOfRegions);
   bGrid.draw();
   let transformations: mat4[] = bGrid.transformHistory;
   let colors: vec3[] = bGrid.colorHistory;
@@ -100,6 +110,11 @@ function main() {
 
   // Add controls to the gui
   const gui = new DAT.GUI();
+  gui.add(controls, 'temp',  0.5, 2.0).step(0.1);
+  gui.add(controls, 'moisture', 0.5, 2.0).step(0.1);
+  gui.add(controls, 'noisy_edge');
+  gui.add(controls, 'noisy_shade');
+  gui.add(controls, 'number_of_regions', [ 'small', 'medium', 'large' ] );
 
   // Initial display for framerate
   const stats = Stats();
@@ -120,7 +135,7 @@ function main() {
   setGL(gl);
 
   // Initial call to load scene
-  loadScene();
+  loadScene(prevTemp, prevMoisture, prevNumberofRegions);
 
   const camera = new Camera(vec3.fromValues(0, -20, 0), vec3.fromValues(0, 0, 0));
 
@@ -159,15 +174,31 @@ function main() {
     renderer.clear();
     processKeyPresses();
 
+    if (controls.temp != prevTemp ||
+        controls.moisture != prevMoisture ||
+        controls.number_of_regions != prevNumberofRegions) {
+          prevTemp = controls.temp;
+          prevMoisture = controls.moisture;
+          prevNumberofRegions = controls.number_of_regions;
+          loadScene(prevTemp, prevMoisture, prevNumberofRegions);
+}
+    if (controls.noisy_edge != prevNoisyEdges) {
+      prevNoisyEdges = controls.noisy_edge;
+    }
+
+    if (controls.noisy_shade != prevNoisyShades) {
+      prevNoisyShades = controls.noisy_shade;
+    }
+
     // renderer.render(camera, lambert, [
     //   plane,
     // ]);
     renderer.render(camera, flat, [
       square,
-    ]);
+    ], false, false);
     renderer.render(camera, instance, [
       plane,
-    ]);
+    ], prevNoisyEdges, prevNoisyShades);
     stats.end();
 
     // Tell the browser to call `tick` again whenever it renders a new frame

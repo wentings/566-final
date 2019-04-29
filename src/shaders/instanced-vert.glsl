@@ -3,6 +3,7 @@
 uniform mat4 u_ViewProj;
 uniform float u_Time;
 uniform mat4 u_Model;
+uniform bool u_NoisyEdge;
 
 uniform mat3 u_CameraAxes; // Used for rendering particles as billboards (quads that are always looking at the camera)
 // gl_Position = center + vs_Pos.x * camRight + vs_Pos.y * camUp;
@@ -69,16 +70,28 @@ float generateHeight(float x, float y) {
 void main()
 {
     fs_Col = vs_Col;
+    mat4 transformation;
+    vec4 modelposition;
+    vec4 transformedPos;
+    if (u_NoisyEdge) {
+      float noise = 0.02 * random(vs_Pos.xy);
+      transformation = mat4(vs_Transform1, vs_Transform2, vs_Transform3,
+        vs_Transform4);
+      modelposition = vec4(vs_Pos.x + noise, vs_Pos.y, vs_Pos.z + noise, 1.0);
+      modelposition = u_Model * modelposition;
+      transformedPos = transformation * modelposition;
+      transformedPos += vec4(-0.05 * random1(transformedPos.xz, transformedPos.yz), 0,
+      0.1 * random1(transformedPos.xz, transformedPos.xy), 0.0);
+      fs_Pos = transformedPos;
+    } else {
+      transformation = mat4(vs_Transform1, vs_Transform2, vs_Transform3,
+        vs_Transform4);
+      modelposition = vs_Pos;
+      modelposition = u_Model * modelposition;
+      transformedPos = transformation * modelposition;
+      fs_Pos = vs_Pos;
+    }
 
-    float noise = 0.02 * random(vs_Pos.xy);
-    mat4 transformation = mat4(vs_Transform1, vs_Transform2, vs_Transform3,
-      vs_Transform4);
-    vec4 modelposition = vec4(vs_Pos.x + noise, vs_Pos.y, vs_Pos.z + noise, 1.0);
-    modelposition = u_Model * modelposition;
-    vec4 transformedPos = transformation * modelposition;
-    transformedPos += vec4(-0.05 * random1(transformedPos.xz, transformedPos.yz), 0,
-    0.1 * random1(transformedPos.xz, transformedPos.xy), 0.0);
-    fs_Pos = transformedPos;
     fs_LightVec = lightPos - transformedPos;
     gl_Position = u_ViewProj * transformedPos;
 }
