@@ -29,14 +29,14 @@ function loadScene() {
   square.create();
   hex = new Hexagon(vec3.fromValues(0, 0, 0));
   hex.create();
-  plane = new Plane(vec3.fromValues(0,0,0), vec2.fromValues(100,100), 20);
+  plane = new Plane(vec3.fromValues(0,0,0), vec2.fromValues(1,1), 10);
   plane.create();
   cube = new Cube(vec3.fromValues(0, 0, 0));
   planePos = vec2.fromValues(0,0);
   cube.create();
 
   var i, j;
-  var bGrid = new biomeGrid();
+  var bGrid = new biomeGrid(1.0, 1.0);
   bGrid.draw();
   let transformations: mat4[] = bGrid.transformHistory;
   let colors: vec3[] = bGrid.colorHistory;
@@ -92,8 +92,8 @@ function loadScene() {
   let col4_1: Float32Array = new Float32Array(col4Array_1);
   let colors_1: Float32Array = new Float32Array(colorsArray_1);
   let offset_1: Float32Array = new Float32Array(offsetsArray_1);
-  square.setInstanceVBOs(col1_1, col2_1, col3_1, col4_1, colors_1);
-  square.setNumInstances(m);
+  plane.setInstanceVBOs(col1_1, col2_1, col3_1, col4_1, colors_1);
+  plane.setNumInstances(m);
 }
 
 function main() {
@@ -122,7 +122,7 @@ function main() {
   // Initial call to load scene
   loadScene();
 
-  const camera = new Camera(vec3.fromValues(0, 0, -90), vec3.fromValues(0, 0, 0));
+  const camera = new Camera(vec3.fromValues(0, -20, 0), vec3.fromValues(0, 0, 0));
 
   const renderer = new OpenGLRenderer(canvas);
   renderer.setClearColor(164.0 / 255.0, 233.0 / 255.0, 1.0, 1);
@@ -162,11 +162,11 @@ function main() {
     // renderer.render(camera, lambert, [
     //   plane,
     // ]);
-    // renderer.render(camera, flat, [
-    //   square,
-    // ]);
-    renderer.render(camera, instance, [
+    renderer.render(camera, flat, [
       square,
+    ]);
+    renderer.render(camera, instance, [
+      plane,
     ]);
     stats.end();
 
