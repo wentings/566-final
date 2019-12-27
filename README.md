@@ -3,7 +3,7 @@
  Wendy Sun (wentings)
 
 ## Demo
-### https://wentings.github.io/566-final/
+### https://wendy-sun-07.github.io/566-final/
 ![](demo.png)
 
 ## Implementation
